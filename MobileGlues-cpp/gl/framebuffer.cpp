@@ -554,6 +554,20 @@ void glReadBuffer(GLenum src) {
 }
 GLenum glCheckFramebufferStatus(GLenum target) {
     GLenum status = GLES.glCheckFramebufferStatus(target);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        LOG_W_FORCE("Framebuffer incomplete: status 0x%x", status)
+        for (int i = 0; i < 8; ++i) {
+            const GLenum att = GL_COLOR_ATTACHMENT0 + i;
+            GLint kind = GL_NONE, red = 0, alpha = 0, component = 0;
+            GLES.glGetFramebufferAttachmentParameteriv(target, att, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &kind);
+            if (kind == GL_NONE) continue;
+            GLES.glGetFramebufferAttachmentParameteriv(target, att, GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE, &red);
+            GLES.glGetFramebufferAttachmentParameteriv(target, att, GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE, &alpha);
+            GLES.glGetFramebufferAttachmentParameteriv(target, att, GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE,
+                                                       &component);
+            LOG_W_FORCE("  color %d: red bits %d, alpha bits %d, component type 0x%x", i, red, alpha, component)
+        }
+    }
     if (global_settings.ignore_error == IgnoreErrorLevel::Full && status != GL_FRAMEBUFFER_COMPLETE) {
         return GL_FRAMEBUFFER_COMPLETE;
     }

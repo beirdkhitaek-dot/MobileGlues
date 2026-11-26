@@ -814,6 +814,48 @@ void internal_convert(GLenum* internal_format, GLenum* type, GLenum* format, boo
     }
 }
 
+// Formats that desktop GL can render into but GLES 3.2 does not guarantee as
+// color attachments are replaced with a renderable one. Only for allocations
+// without data (render targets): uploaded textures keep their format, so their
+// transfers still match. Returns true if a channel that must read as 1 was added.
+static bool promote_unrenderable(GLenum* internal_format, GLenum* format, GLenum* type) {
+    GLenum to, fmt, ty = GL_HALF_FLOAT;
+    bool added_alpha = false;
+    switch (*internal_format) {
+    case GL_RGB16F:
+    case GL_RGB16:
+    case GL_RGB8_SNORM:
+    case GL_RGB16_SNORM:
+        to = GL_RGBA16F, fmt = GL_RGBA, added_alpha = true;
+        break;
+    case GL_RGB32F:
+        to = GL_RGBA32F, fmt = GL_RGBA, ty = GL_FLOAT, added_alpha = true;
+        break;
+    case GL_SRGB8:
+        to = GL_SRGB8_ALPHA8, fmt = GL_RGBA, ty = GL_UNSIGNED_BYTE, added_alpha = true;
+        break;
+    case GL_RGBA8_SNORM:
+    case GL_RGBA16_SNORM:
+        to = GL_RGBA16F, fmt = GL_RGBA;
+        break;
+    case GL_RG8_SNORM:
+    case GL_RG16_SNORM:
+        to = GL_RG16F, fmt = GL_RG;
+        break;
+    case GL_R8_SNORM:
+    case GL_R16_SNORM:
+        to = GL_R16F, fmt = GL_RED;
+        break;
+    default:
+        return false;
+    }
+    LOG_W_FORCE("Render target format 0x%x replaced with 0x%x", *internal_format, to)
+    *internal_format = to;
+    *format = fmt;
+    *type = ty;
+    return added_alpha;
+}
+
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param) {
     LOG()
     pname = pname_convert(pname);
@@ -897,6 +939,9 @@ void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei widt
     // An allocation has no bytes to describe, so there both are adopted.
     GLenum want_if = static_cast<GLenum>(internalFormat), want_fmt = format, want_type = type;
     internal_convert(&want_if, &want_type, &want_fmt, mg_upload_has_data(pixels));
+    bool force_alpha_one = false;
+    if (!mg_upload_has_data(pixels) && target == GL_TEXTURE_2D)
+        force_alpha_one = promote_unrenderable(&want_if, &want_fmt, &want_type);
     internalFormat = static_cast<GLint>(want_if);
 
     mg_upload_fix_t fix(width, height, 1, format, type, pixels, want_fmt, /*three_d=*/false);
@@ -945,6 +990,12 @@ void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei widt
     tex->format = format;
 
     GLES.glTexImage2D(target, level, internalFormat, width, height, border, format, type, fix.pixels);
+
+    if (force_alpha_one) {
+        // The RGB texture the application asked for samples alpha as 1.
+        GLES.glTexParameteri(target, GL_TEXTURE_SWIZZLE_A, GL_ONE);
+        tex->swizzle_param[3] = GL_ONE;
+    }
 
     CHECK_GL_ERROR
 }

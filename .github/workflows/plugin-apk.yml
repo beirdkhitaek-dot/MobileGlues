@@ -2,10 +2,10 @@ name: Build Zalith plugin APK
 on:
   push:
     branches: [fix/noperspective-fallback]
-    paths: ['.github/workflows/plugin-apk.yml']
+    paths: ['.github/workflows/plugin-apk.yml', 'MobileGlues-cpp/**']
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -24,10 +24,10 @@ jobs:
           mv core plugin/MobileGlues
           f=plugin/app/build.gradle.kts
           sed -i 's/applicationId = "com.fcl.plugin.mobileglues"/applicationId = "com.fcl.plugin.mobileglues.noperspective"/' $f
-          sed -i 's/versionCode = 2000/versionCode = 2001/; s/versionName = "2.0.0"/versionName = "2.0.0.1"/' $f
+          sed -i 's/versionCode = 2000/versionCode = 2002/; s/versionName = "2.0.0"/versionName = "2.0.0.2"/' $f
           sed -i 's/"app_name","MobileGlues")/"app_name","MobileGlues Mali Fix")/' $f
-          sed -i 's/"MobileGlues (OpenGL 4.0, 1.17+)"/"MobileGlues Mali Fix 2.0.0.1"/; s/"MobileGlues:libmobileglues.so:/"MobileGluesMaliFix:libmobileglues.so:/' $f
-          grep -q 'mobileglues.noperspective' $f && grep -q '2.0.0.1' $f
+          sed -i 's/"MobileGlues (OpenGL 4.0, 1.17+)"/"MobileGlues Mali Fix 2.0.0.2"/; s/"MobileGlues:libmobileglues.so:/"MobileGluesMaliFix:libmobileglues.so:/' $f
+          grep -q 'mobileglues.noperspective' $f && grep -q '2.0.0.2' $f
       - uses: actions/setup-java@v4
         with:
           distribution: zulu
@@ -38,22 +38,8 @@ jobs:
           echo y | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.3.13750724" >/dev/null
           chmod +x gradlew
           ./gradlew :app:assembleDebug
-          cp app/build/outputs/apk/debug/*.apk "$GITHUB_WORKSPACE/MobileGlues-MaliFix-2.0.0.1.apk"
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cat > notes.md <<'NOTES'
-          ## What's new
-          - Installable plugin APK containing the Mali noperspective fix.
-
-          ## How to use
-          1. Install the APK.
-          2. Fully close Zalith Launcher 2 and open it again.
-          3. Choose "MobileGlues Mali Fix" as the renderer for a test version.
-
-          Debug-signed: uninstall it before installing a newer build. Not yet tested on a device.
-          Built from MobileGL-Dev/MobileGlues-plugin (LGPL-2.1) commit f5105e4ddd1752cccdcc6421c402960d40ec3d9d.
-          NOTES
-          gh release create v2.0.0.1-plugin MobileGlues-MaliFix-2.0.0.1.apk --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "MobileGlues 2.0.0.1 - Mali Fix plugin APK" --notes-file notes.md
+          cp app/build/outputs/apk/debug/*.apk "$GITHUB_WORKSPACE/MobileGlues-MaliFix-2.0.0.2.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MobileGlues-MaliFix-2.0.0.2
+          path: MobileGlues-MaliFix-2.0.0.2.apk
