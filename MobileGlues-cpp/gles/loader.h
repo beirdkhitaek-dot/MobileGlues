@@ -202,6 +202,7 @@ extern "C"
         int GL_EXT_texture_norm16;
         int GL_EXT_texture_rg;
         int GL_EXT_texture_query_lod;
+        int GL_NV_shader_noperspective_interpolation;
         int GL_EXT_draw_elements_base_vertex;
         // Needed by the virtual enable table (gl/enable.cpp): each of these
         // supplies a GL 4.6 enable capability that GLES 3.2 core does not have,

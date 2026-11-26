@@ -14,6 +14,7 @@
 #include "../gles/loader.h"
 #include "../includes.h"
 #include "glsl/glsl_for_es.h"
+#include "glsl/noperspective.h"
 #include "../config/settings.h"
 #include "FSR1/FSR1.h"
 
@@ -95,6 +96,10 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar* const* string, c
         }
         LOG_D("\n[INFO] [Shader] Converted Shader source: \n%s", essl_src.c_str())
     }
+    // Applied to the final source so it covers direct ESSL, translated GLSL
+    // (SPIRV-Cross re-emits the qualifier) and cached translations.
+    if (!g_gles_caps.GL_NV_shader_noperspective_interpolation) essl_src = strip_noperspective(essl_src);
+
     if (!essl_src.empty()) {
         shaderInfo.id = shader;
         shaderInfo.converted = essl_src;

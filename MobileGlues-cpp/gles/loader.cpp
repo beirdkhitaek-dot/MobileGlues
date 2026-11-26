@@ -237,6 +237,8 @@ void InitGLESCapabilities() {
                 g_gles_caps.GL_EXT_texture_norm16 = 1;
             } else if (strcmp(extension, "GL_EXT_texture_rg") == 0) {
                 g_gles_caps.GL_EXT_texture_rg = 1;
+            } else if (strcmp(extension, "GL_NV_shader_noperspective_interpolation") == 0) {
+                g_gles_caps.GL_NV_shader_noperspective_interpolation = 1;
             } else if (strcmp(extension, "GL_EXT_texture_query_lod") == 0) {
                 g_gles_caps.GL_EXT_texture_query_lod = 1;
             } else if (strcmp(extension, "GL_EXT_draw_elements_base_vertex") == 0) {
